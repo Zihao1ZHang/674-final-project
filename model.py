@@ -80,5 +80,6 @@ class FoldingBlock(torch.nn.Module):
         up = self.Up_module(points,grid= grid)
         down = self.Down_module(points,up)
         up1 = self.Up_module(down,grid= grid)
+        print("1")
         return up1+up
 
