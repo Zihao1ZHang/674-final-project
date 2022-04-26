@@ -8,6 +8,34 @@ from torch_geometric.data import Data
 from torch.utils.data import DataLoader
 import multiprocessing
 
+import os
+import pandas as pd
+from torchvision.io import read_image
+from torch.utils.data import Dataset
+
+
+class CustomImageDataset(Dataset):
+    def __init__(self, annotations_file, img_dir, transform=None, target_transform=None):
+        self.img_labels = pd.read_csv(annotations_file)
+        self.img_dir = img_dir
+        self.transform = transform
+        self.target_transform = target_transform
+
+    def __len__(self):
+        return len(self.img_labels)
+
+    def __getitem__(self, idx):
+        img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
+        image = read_image(img_path)
+        label = self.img_labels.iloc[idx, 1]
+        if self.transform:
+            image = self.transform(image)
+        if self.target_transform:
+            label = self.target_transform(label)
+        return image, label
+
+
+
 category_ids = {
     'Airplane': '02691156',
     'Bag': '02773838',
@@ -35,6 +63,7 @@ def read_h5py(file):
         data_key = list(f.keys())[0]
         data_np = np.array(f[data_key])
         data = torch.tensor(data_np, dtype=torch.float32)
+        #print(data.shape)
         data_list.append(data)
     return data_list
 
@@ -54,19 +83,26 @@ def loop_dir(dir):
 
 
 def load_data(dir, phase, category):
-    assert(category in category_ids)
-    category = category_ids[category]
-    partial_dir = dir + phase + "/partial/" + category + "/"
-    gt_dir = dir + phase + "/gt/" + category + "/"
+    if phase != "test":
+        assert (category in category_ids)
+        category = category_ids[category]
+        partial_dir = dir + phase + "/partial/" + category + "/"
+        gt_dir = dir + phase + "/gt/" + category + "/"
+        partial_list = loop_dir(partial_dir)
+        gt_list = loop_dir(gt_dir)
 
-    partial_list = loop_dir(partial_dir)
-    gt_list = loop_dir(gt_dir)
-
-    data_list = []
-    for partial, gt in zip(partial_list, gt_list):
-        data_list += [Data(pos=partial, y=gt)]
-    out = DataLoader(data_list, batch_size=32, shuffle=True)
-    return out
+        # partial_tensor = torch.stack(partial_list)
+        data_list = []
+        for partial, gt in zip(partial_list, gt_list):
+            data_list.append([partial[1][0], gt[1][0]])
+        out = DataLoader(data_list, batch_size=32, shuffle=True)
+        return out
+    else:
+        assert (category in category_ids)
+        category = category_ids[category]
+        partial_dir = dir + phase + "/partial/all/"
+        partial_list = loop_dir(partial_dir)
+        return
 
 
 def load_h5(filename):
