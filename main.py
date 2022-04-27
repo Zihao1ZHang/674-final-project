@@ -18,7 +18,7 @@ def train(model, train_loader):
         train_y = train_y.to(device)
         optimizer.zero_grad()
         y = model(train_x)
-        #dist1, dist2 = criterion(decoded.reshape(-1,2048,3), data.y.reshape(-1,2048,3))
+        # dist1, dist2 = criterion(decoded.reshape(-1,2048,3), data.y.reshape(-1,2048,3))
         loss = criterion(y, train_y)
         loss.backward()
         total_loss += loss.item()
@@ -26,17 +26,12 @@ def train(model, train_loader):
     return total_loss / len(train_loader)
 
 
-
 if __name__ == '__main__':
     train_dataset = load_data("./data/Completion3D/raw/", "train", "Airplane")
     val_dataset = load_data("./data/Completion3D/raw/", "val", "Airplane")
 
-    for batch in val_dataset:
-        x = batch[0][0].shape
-        y = batch[1][0].shape
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = SA_net(3, 3).to(device)
-    print(model)
     print('Training started:')
     epoch_num = 400
     for epoch in range(epoch_num):
