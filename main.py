@@ -1,6 +1,7 @@
 from utils import *
-from model import *
+# from model import *
 import torch
+from models.pointnet2_cls_Github import pointnet2_cls_msg
 # from scipy.stats import wasserstein_distance
 # from chamfer_distance import ChamferDistance
 
@@ -12,12 +13,14 @@ def train(model, train_loader):
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     criterion = torch.nn.L1Loss()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    train_points = None
     for train_x, train_y in train_loader:
+        print(train_x.size)
         step += 1
         train_x = train_x.to(device)
         train_y = train_y.to(device)
         optimizer.zero_grad()
-        y = model(train_x)
+        y, train_points = model(train_x, train_points)
         #dist1, dist2 = criterion(decoded.reshape(-1,2048,3), data.y.reshape(-1,2048,3))
         loss = criterion(y, train_y)
         loss.backward()
@@ -35,7 +38,7 @@ if __name__ == '__main__':
         x = batch[0][0].shape
         y = batch[1][0].shape
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = SA_net(3, 3).to(device)
+    model = pointnet2_cls_msg(3, 3).to(device)
     print(model)
     print('Training started:')
     epoch_num = 400

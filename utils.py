@@ -72,7 +72,7 @@ def loop_dir(dir):
     data_list = []
     files = os.listdir(dir)
     filenames = [dir + "/" + x for x in files]
-    core_num = 6
+    core_num = 1
     pool = multiprocessing.Pool(processes=core_num)
     #result = pool.apply_async(read_h5py, filenames)
     for data in enumerate(pool.imap(read_h5py, filenames)):
