@@ -2,5 +2,8 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/kaolin" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/kaolin/third_party/cub" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/kaolin/third_party/nvdiffrast" vcs="Git" />
   </component>
 </project>
