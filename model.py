@@ -181,6 +181,11 @@ class SkipAttention(torch.nn.Module):
 
 
 class SA_net(torch.nn.Module):
+    meshgrid = [[-0.3, 0.3, 46], [-0.3, 0.3, 46]]
+    x = np.linspace(*meshgrid[0])
+    y = np.linspace(*meshgrid[1])
+
+    points = torch.tensor(np.meshgrid(x, y), dtype=torch.float32)
     def __init__(self, num_input, num_output):
         super(SA_net, self).__init__()
         self.fc = Linear(num_input, num_output)
@@ -200,10 +205,16 @@ class SA_net(torch.nn.Module):
         self.ln2 = Linear(64, 3)
 
 
-    def get_2dplane(self, n):
-        self.plane2D = torch.tensor(np.random.normal(0, 1, (n, 2))[np.newaxis, :, np.newaxis, :], dtype=torch.float32)\
-                            .repeat(16, 1, 1, 1).to(device)
-        return self.plane2D
+    def get_2dplane(self, m, n):
+        indeces_x = np.round(np.linspace(0, 45, m)).astype(int)
+        indeces_y = np.round(np.linspace(0, 45, n)).astype(int)
+        x, y = np.meshgrid(indeces_x, indeces_y)
+        p = SA_net.points[:, x.ravel(), y.ravel()].T.contiguous()
+        p = p[None, :, None, :].repeat(16, 1, 1, 1)
+        return p.to(device)
+        # self.plane2D = torch.tensor(np.random.normal(0, 1, (n, 2))[np.newaxis, :, np.newaxis, :], dtype=torch.float32)\
+        #                     .repeat(16, 1, 1, 1).to(device)
+        # return self.plane2D
 
     def encoder(self, x, batch):
         level1 = self.point_net1(x.pos, x.pos, batch, 16)
@@ -213,17 +224,19 @@ class SA_net(torch.nn.Module):
 
     def decoder(self, level1, level2, level3):
         x = level3[0][:, None, None, :].repeat(1, 64, 1, 1)
-        self.get_2dplane(64)
-        x = torch.cat((x, self.plane2D), -1)
+        grid = self.get_2dplane(8, 8)
+        #x = torch.cat((x, p.view(1, p.size(0), 1, p.size(-1)).repeat(x.size(0), 1, 1, 1)), -1)
+
+        x = torch.cat((x, grid), -1)
 
         x = self.skip_attention1(x, level2[0])
-        grid = self.get_2dplane(256)
+        grid = self.get_2dplane(16, 16)
         x = self.folding_block1(x, grid)
         x = x.unsqueeze(-2)
         x = self.skip_attention2(x, level1[0])
-        grid = self.get_2dplane(512)
+        grid = self.get_2dplane(32, 16)
         x = self.folding_block2(x, grid)
-        grid = self.get_2dplane(2048)
+        grid = self.get_2dplane(64, 32)
         # torch.cuda.empty_cache()
         x = self.folding_block3(x, grid)
         x = self.ln1(x)
