@@ -33,14 +33,14 @@ if __name__ == '__main__':
     train_loader = DataLoader(
         dataset, batch_size=16, shuffle=True)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = SA_net(1, 1).to(device)
-    # model.load_state_dict(torch.load('C:/Users/Gsh_1/OneDrive/Documents/GitHub/SA_Net/trained/SA_net_Ch_Car60.pt', map_location=device))
+    model = SA_net().to(device)
+    model.load_state_dict(torch.load('C:/Users/Gsh_1/OneDrive/Documents/GitHub/674-final-project/trained/SA_net_Ch_Airplane_674_new20.pt', map_location=device))
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     emd = emdModule()
     print('Training started:')
-    for epoch in range(1, 121):
+    for epoch in range(21, 41):
         loss = train()
         print('Epoch {:03d}, Loss: {:.4f}'.format(
             epoch, loss))
         if epoch % 20 == 0:
-            torch.save(model.state_dict(), './trained/SA_net_Ch_Airplane_674' + '{}'.format(epoch) + '.pt')
+            torch.save(model.state_dict(), './trained/SA_net_Ch_Airplane_674_new' + '{}'.format(epoch) + '.pt')

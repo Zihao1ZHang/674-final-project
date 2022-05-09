@@ -187,9 +187,8 @@ class SA_net(torch.nn.Module):
     y = np.linspace(*meshgrid[1])
 
     points = torch.tensor(np.meshgrid(x, y), dtype=torch.float32)
-    def __init__(self, num_input, num_output):
+    def __init__(self):
         super(SA_net, self).__init__()
-        self.fc = Linear(num_input, num_output)
         self.point_net1 = pointnet_2(0.25, 0.2, MLP([3 + 3, 64, 64, 128]))
         self.point_net2 = pointnet_2(0.5, 0.4, MLP([128 + 3, 128, 128, 256]))
         self.point_net3 = pointnet_2_group(MLP([256 + 3, 256, 512, 512]))
