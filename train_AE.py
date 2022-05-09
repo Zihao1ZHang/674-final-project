@@ -1,7 +1,7 @@
 import torch
 from torch_geometric.data import DataLoader
 from Compeletion3D import Completion3D
-from model import SA_net
+from model_modified import SA_net
 import kaolin
 from emd_func import *
 
@@ -33,14 +33,15 @@ if __name__ == '__main__':
     train_loader = DataLoader(
         dataset, batch_size=16, shuffle=True)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(device)
     model = SA_net().to(device)
-    model.load_state_dict(torch.load('C:/Users/Gsh_1/OneDrive/Documents/GitHub/674-final-project/trained/SA_net_Ch_Airplane_674_new20.pt', map_location=device))
+    # model.load_state_dict(torch.load('C:/Users/Gsh_1/OneDrive/Documents/GitHub/674-final-project/trained/SA_net_Ch_Airplane_674_new20.pt', map_location=device))
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     emd = emdModule()
     print('Training started:')
-    for epoch in range(21, 41):
+    for epoch in range(1, 401):
         loss = train()
         print('Epoch {:03d}, Loss: {:.4f}'.format(
             epoch, loss))
         if epoch % 20 == 0:
-            torch.save(model.state_dict(), './trained/SA_net_Ch_Airplane_674_new' + '{}'.format(epoch) + '.pt')
+            torch.save(model.state_dict(), './trained/SA_net_Ch_Airplane_674_modified' + '{}'.format(epoch) + '.pt')
