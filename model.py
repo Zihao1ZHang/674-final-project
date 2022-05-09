@@ -7,6 +7,7 @@ from torch.nn import Linear
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+
 class pointnet_2(torch.nn.Module):
     def __init__(self, ratio, rad, nn):
         super(pointnet_2, self).__init__()
@@ -198,7 +199,7 @@ class SA_net(torch.nn.Module):
 
         self.folding_block1 = FoldingBlock(64, 256, [514, 512], [1024, 512], [1024, 256], [1024, 1024], [1024, 256], [1024, 512, 256])
         self.folding_block2 = FoldingBlock(256, 512, [258, 256], [256, 256], [512, 64], [512, 512], [512, 64], [512, 256, 128])
-        self.folding_block3 = FoldingBlock(512, 2048, [130, 128], [512, 128], [256, 64], [256, 256], [256, 64], [256, 128])
+        self.folding_block3 = FoldingBlock(512, 2048, [130, 128], [512, 256, 128], [256, 64], [256, 256], [256, 64], [256, 128])
 
         self.ln1 = Linear(128, 64)
         self.relu = torch.nn.ReLU()
