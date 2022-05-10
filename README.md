@@ -36,6 +36,8 @@ pip install matplotlib
 
 conda install jupyter
 
+pip install transforms3d==0.3.1
+
 FINISH
 
 EMD: https://github.com/Colin97/MSN-Point-Cloud-Completion/tree/master/emd

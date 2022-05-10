@@ -134,6 +134,7 @@ class Completion3D(InMemoryDataset):
 
                 for gt, par in zip(data_list_gt, data_list_partial):
                     data_list += [Data(pos=par, y=gt, category=cat)]
+                collat = self.collate(data_list)
                 torch.save(self.collate(data_list), self.processed_paths[i])
 
 

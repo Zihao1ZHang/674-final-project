@@ -1,9 +1,8 @@
-import torch
 from torch_geometric.data import DataLoader
 from Compeletion3D import Completion3D
 from model_modified import SA_net
 import kaolin
-from emd_func import *
+from utils.emd_func import *
 
 
 # from test import cal_chamfer_distance
