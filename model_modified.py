@@ -100,6 +100,8 @@ class FoldingBlock(torch.nn.Module):
     def Up_module(self, points, grid):
         dup = points.repeat(1, int(self.ratio), 1).contiguous()
         grid = grid.squeeze()
+        if len(grid.size()) == 2:
+            grid = grid.unsqueeze(0)
         point_1 = torch.cat((dup, grid), -1)
         point_2 = self.mlp_up(point_1)
         point_3 = torch.cat((dup, point_2), -1)
@@ -161,8 +163,8 @@ class SkipAttention(torch.nn.Module):
         self.mlp_g = mlp_g
         self.mlp_f = mlp_f
 
-    def forward(self, p, r):
-        r = torch.reshape(r, (16, int(r.shape[0]/16), r.shape[1])).unsqueeze(-3)
+    def forward(self, p, r, batch):
+        r = torch.reshape(r, (batch[-1] + 1, int(r.shape[0]/(batch[-1] + 1)), r.shape[1])).unsqueeze(-3)
 
         h = self.mlp_h(p)
         l = self.mlp_l(r)
@@ -171,9 +173,11 @@ class SkipAttention(torch.nn.Module):
         l = l.expand(-1, h.shape[1], -1, -1).unsqueeze(-1)
         mm = torch.matmul(h, l).squeeze()
         attn_weights = F.softmax(mm, dim=-1)
-
         g = self.mlp_g(r)
         g = g.squeeze()
+        if len(attn_weights.size()) == 2:
+            attn_weights = attn_weights.unsqueeze(0)
+            g = g.unsqueeze(0)
         atten_appllied = torch.bmm(attn_weights, g)
         if self.mlp_f is not None:
             return self.mlp_f(p.squeeze() + atten_appllied)
@@ -206,42 +210,42 @@ class SA_net(torch.nn.Module):
         self.ln2 = Linear(64, 3)
 
 
-    def get_2dplane(self, m, n):
+    def get_2dplane(self, m, n, batch):
         indeces_x = np.round(np.linspace(0, 45, m)).astype(int)
         indeces_y = np.round(np.linspace(0, 45, n)).astype(int)
         x, y = np.meshgrid(indeces_x, indeces_y)
         p = SA_net.points[:, x.ravel(), y.ravel()].T.contiguous()
-        p = p[None, :, None, :].repeat(16, 1, 1, 1)
+        p = p[None, :, None, :].repeat(batch[-1] + 1, 1, 1, 1)
         return p.to(device)
         # self.plane2D = torch.tensor(np.random.normal(0, 1, (n, 2))[np.newaxis, :, np.newaxis, :], dtype=torch.float32)\
         #                     .repeat(16, 1, 1, 1).to(device)
         # return self.plane2D
 
     def encoder(self, x, batch):
-        level0 = self.point_net0(x.pos, x.pos, batch, 16)
-        level1 = self.point_net1(level0[0], level0[1], level0[2], 16)
-        level2 = self.point_net2(level1[0], level1[1], level1[2], 16)
+        level0 = self.point_net0(x.pos, x.pos, batch, batch[-1] + 1)
+        level1 = self.point_net1(level0[0], level0[1], level0[2], batch[-1] + 1)
+        level2 = self.point_net2(level1[0], level1[1], level1[2], batch[-1] + 1)
         level3 = self.point_net3(level2[0], level2[1], level2[2])
         return level0, level1, level2, level3
 
-    def decoder(self, level0, level1, level2, level3):
+    def decoder(self, level0, level1, level2, level3, batch):
         x = level3[0][:, None, None, :].repeat(1, 64, 1, 1)
-        grid = self.get_2dplane(8, 8)
+        grid = self.get_2dplane(8, 8, batch)
         #x = torch.cat((x, p.view(1, p.size(0), 1, p.size(-1)).repeat(x.size(0), 1, 1, 1)), -1)
         x = torch.cat((x, grid), -1)
 
-        x = self.skip_attention1(x, level2[0])
-        grid = self.get_2dplane(16, 16)
+        x = self.skip_attention1(x, level2[0], batch)
+        grid = self.get_2dplane(16, 16, batch)
         x = self.folding_block1(x, grid)
         x = x.unsqueeze(-2)
 
-        x = self.skip_attention2(x, level1[0])
-        grid = self.get_2dplane(32, 16)
+        x = self.skip_attention2(x, level1[0], batch)
+        grid = self.get_2dplane(32, 16, batch)
         x = self.folding_block2(x, grid)
         x = x.unsqueeze(-2)
 
-        x = self.skip_attention3(x, level0[0])
-        grid = self.get_2dplane(64, 32)
+        x = self.skip_attention3(x, level0[0], batch)
+        grid = self.get_2dplane(64, 32, batch)
         x = self.folding_block3(x, grid)
         x = self.ln1(x)
         x = self.relu(x)
@@ -250,5 +254,5 @@ class SA_net(torch.nn.Module):
 
     def forward(self, x, batch):
         level0, level1, level2, level3 = self.encoder(x, batch)
-        out = self.decoder(level0, level1, level2, level3)
+        out = self.decoder(level0, level1, level2, level3, batch)
         return out
