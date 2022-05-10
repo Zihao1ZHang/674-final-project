@@ -8,7 +8,7 @@ from main import DataPreprocess
 from torch_geometric.data import DataLoader
 # from model import SA_net
 # from model_modified import SA_net
-from model import SA_net
+from model_modified import SA_net
 import torch
 import kaolin
 from utils.emd_func import *
@@ -43,7 +43,7 @@ if __name__ == '__main__':
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = SA_net().to(device)
-    model.load_state_dict(torch.load('./trained/model_SA_net.pt', map_location=device))
+    model.load_state_dict(torch.load('./trained/model_SA_net_level4.pt', map_location=device))
     model.eval()
     gen_data = {
         'pred': np.empty([len(test_dataset), 2048, 3]),
@@ -64,5 +64,5 @@ if __name__ == '__main__':
     emd = emdModule()
     print(cal_loss(data_loader=test_loader, test_model=model, dataset=test_dataset))
     for i in range(100):
-        path = "./result/model/model_" + str(i) + ".png"
+        path = "./result/model_level4/model_level4_" + str(i) + ".png"
         plot_pcds(path, [gen_data['pred'][i].squeeze(), gen_data['original'][i].squeeze(), gen_data['true'][i].squeeze()], ['pred', 'partial', 'gt'], use_color=[0, 0, 0], color=[None, None, None])
