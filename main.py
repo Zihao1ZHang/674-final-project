@@ -5,7 +5,8 @@ from utils.shapenet import ShapenetDataProcess
 import argparse
 from utils.data_process import get_while_running, kill_data_processes
 from torch_geometric.data import DataLoader
-from model_cos import SA_net
+# from model_cos import SA_net
+from model_modified_cos import SA_net
 import kaolin
 from utils.emd_func import *
 
@@ -104,5 +105,5 @@ if __name__ == '__main__':
         print('Epoch {:03d}, Loss: {:.4f}'.format(
             epoch, loss))
         if epoch % 20 == 0:
-            torch.save(model.state_dict(), './trained/SA_net_Ch_Airplane_674_cos_' + '{}'.format(epoch) + '.pt')
+            torch.save(model.state_dict(), './trained/SA_net_Ch_Airplane_674_modified_cos_' + '{}'.format(epoch) + '.pt')
 
