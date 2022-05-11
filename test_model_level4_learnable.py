@@ -57,8 +57,8 @@ if __name__ == '__main__':
     print(cal_loss(data_loader=test_loader, test_model=model, dataset=test_dataset))
     if not os.path.isdir("result"):
         os.mkdir("result")
-    if not os.path.isdir("./result/model_level4"):
-        os.mkdir("./result/model_level4")
+    if not os.path.isdir("./result/model_level4_learnable"):
+        os.mkdir("./result/model_level4_learnable")
     for i in range(100):
-        path = "./result/model_level4/model_level4_" + str(i) + ".png"
+        path = "./result/model_level4_learnable/model_level4_learnable_" + str(i) + ".png"
         plot_pcds(path, [gen_data['pred'][i].squeeze(), gen_data['original'][i].squeeze(), gen_data['true'][i].squeeze()], ['pred', 'partial', 'gt'], use_color=[0, 0, 0], color=[None, None, None])
