@@ -16,7 +16,6 @@ class DataPreprocess(InMemoryDataset):
         self.args = args_input
         self.url = 'https://download.cs.stanford.edu/downloads/completion3d/dataset2019.zip'
         super(DataPreprocess, self).__init__(root, transform, pre_transform, pre_filter)
-        print(1)
         if args_input.mode == 'train':
             path = self.processed_paths[0]
         elif args_input.mode == 'val':
