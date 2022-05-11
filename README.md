@@ -8,7 +8,7 @@ CPU: Ryzen 9 3900x / i711700k
 
 GPU: RTX 3070 / RTX 3080ti
 
-Create a new python environment 3.6.13
+Create a new python environment 3.6.13(Anaconda3)
 
 pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 torchaudio==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html
 
@@ -48,10 +48,6 @@ pip install transforms3d==0.3.1
 
 FINISH
 
-EMD: https://github.com/Colin97/MSN-Point-Cloud-Completion/tree/master/emd
-
-Kaolin: https://github.com/NVIDIAGameWorks/kaolin/
-
 How to train:
 
 To run original model: change the line 9 in main.py to: from model import SA_net
@@ -69,3 +65,18 @@ To run original model: test_model.py
 To run model with 4 level: test_model_level4.py
 
 To run model with learnable skip_attention: test_model_learnable.py
+
+The test results are saved in the result folder
+
+
+
+
+Source code each of the team members wrote:
+The implementations of loss functions are from:
+EMD: https://github.com/Colin97/MSN-Point-Cloud-Completion/tree/master/emd
+Chamfer distance from Kaolin: https://github.com/NVIDIAGameWorks/kaolin/
+
+Shenghao Guan: main.py(13-58(Use the ShapenetDataProcess from https://github.com/lynetcha/completion3d), 61-76, 79-106)
+               test_model.py(11-19, 22-64(Use the plot_pcds from https://github.com/lynetcha/completion3d to plot point cloud))
+Zehui Lin:
+Zihao Zhang:
