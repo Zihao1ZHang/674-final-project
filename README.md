@@ -72,11 +72,17 @@ The test results are saved in the result folder
 
 
 Source code each of the team members wrote:
+
 The implementations of loss functions are from:
 EMD: https://github.com/Colin97/MSN-Point-Cloud-Completion/tree/master/emd
 Chamfer distance from Kaolin: https://github.com/NVIDIAGameWorks/kaolin/
 
-Shenghao Guan: main.py(13-58(Use the ShapenetDataProcess from https://github.com/lynetcha/completion3d), 61-76, 79-106)
-               test_model.py(11-19, 22-64(Use the plot_pcds from https://github.com/lynetcha/completion3d to plot point cloud))
-Zehui Lin:
-Zihao Zhang:
+The reference of the model: https://github.com/RaminHasibi/SA_Net 
+(We refer to the baseline of this Github project to build the model in model.py)
+
+Shenghao Guan: test_model.py(11-19, 22-64(Use the plot_pcds from https://github.com/lynetcha/completion3d to plot point cloud)),
+               model.py() (11-46, 66-87), fix bugs in others' code
+Zehui Lin: model.py(90-125, 166-187, 201-205), main.py(79-106), fix bugs in others' code
+Zihao Zhang: main.py(13-58(Use the ShapenetDataProcess from https://github.com/lynetcha/completion3d), 61-76),
+             model.py(128-164, 190-196, 207-232), fix bugs in others' code
+Together: The extension of the models(additional folding block and learnable)
