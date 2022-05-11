@@ -80,9 +80,9 @@ Chamfer distance from Kaolin: https://github.com/NVIDIAGameWorks/kaolin/
 The reference of the model: https://github.com/RaminHasibi/SA_Net 
 (We refer to the baseline of this Github project to build the model in model.py)
 
-Shenghao Guan: test_model.py(11-19, 22-64(Use the plot_pcds from https://github.com/lynetcha/completion3d to plot point cloud)),
-               model.py() (11-46, 66-87), fix bugs in others' code
-Zehui Lin: model.py(90-125, 166-187, 201-205), main.py(79-106), fix bugs in others' code
-Zihao Zhang: main.py(13-58(Use the ShapenetDataProcess from https://github.com/lynetcha/completion3d), 61-76),
-             model.py(128-164, 190-196, 207-232), fix bugs in others' code
+Shenghao Guan: test_model.py(11-19, 22-64(Use the plot_pcds from https://github.com/lynetcha/completion3d to plot point cloud)),</br>
+               model.py() (11-46, 66-87), fix bugs in others' code</br>
+Zehui Lin: model.py(90-125, 166-187, 201-205), main.py(79-106), fix bugs in others' code</br>
+Zihao Zhang: main.py(13-58(Use the ShapenetDataProcess from https://github.com/lynetcha/completion3d), 61-76),</br>
+             model.py(128-164, 190-196, 207-232), fix bugs in others' code</br>
 Together: The extension of the models(additional folding block and learnable)
