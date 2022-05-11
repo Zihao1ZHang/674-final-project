@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from torch.nn import Sequential as Seq, Linear as Lin, ReLU, BatchNorm1d as BN, LeakyReLU, GroupNorm
+from torch.nn import Sequential as Seq, Linear as Lin, ReLU
 from torch_geometric.nn import PointConv, fps, radius, global_max_pool
 import numpy as np
 from torch.nn import Linear
@@ -92,10 +92,6 @@ class FoldingBlock(torch.nn.Module):
         return point_4
 
     def Down_module(self, points, up_points):
-        # point_1 = torch.reshape(up_points, (up_points.shape[0], self.input, int(self.ratio)*up_points.shape[2])).contiguous()
-        # point_2 = point_1-points
-        # point_3 = self.mlp_down(point_2)
-        # return point_3
         up_reshape = up_points.view(-1, self.input, int(self.ratio) * up_points.size(2))
         mlp_up_points = self.mlp_down(up_reshape)
         return points - mlp_up_points
@@ -117,27 +113,33 @@ class SkipAttention(torch.nn.Module):
         self.mlp_g = mlp_g
         self.mlp_f = mlp_f
 
-    def forward(self, p, r, batch):
-        r = torch.reshape(r, (batch[-1] + 1, int(r.shape[0]/(batch[-1] + 1)), r.shape[1])).unsqueeze(-3)
+    def forward(self, p, r, batch, method='learnable'):
+        r = torch.reshape(r, (batch[-1] + 1, int(r.shape[0]/(batch[-1]+1)), r.shape[1])).unsqueeze(-3)
 
         h = self.mlp_h(p)
         l = self.mlp_l(r)
 
-        h = h.expand(-1, -1, r.shape[2], -1).unsqueeze(-2)
-        l = l.expand(-1, h.shape[1], -1, -1).unsqueeze(-1)
-        mm = torch.matmul(h, l).squeeze()
-        attn_weights = F.softmax(mm, dim=-1)
+        if method == 'learnable':
+            h = h.expand(-1, -1, r.shape[2], -1).unsqueeze(-2)
+            l = l.expand(-1, h.shape[1], -1, -1).unsqueeze(-1)
+            mm = torch.matmul(h, l).squeeze()
+            attn_weights = F.softmax(mm, dim=-1)
+        else:
+            h = h.expand(-1, -1, r.shape[2], -1)
+            l = l.expand(-1, h.shape[1], -1, -1)
+            cos = torch.nn.CosineSimilarity(dim=-1, eps=1e-6)
+            attn_weights = cos(h, l)
         g = self.mlp_g(r)
         g = g.squeeze()
         if len(attn_weights.size()) == 2:
             attn_weights = attn_weights.unsqueeze(0)
+        if len(g.size()) == 2:
             g = g.unsqueeze(0)
         atten_appllied = torch.bmm(attn_weights, g)
         if self.mlp_f is not None:
             return self.mlp_f(p.squeeze() + atten_appllied)
         else:
             return p.squeeze() + atten_appllied
-
 
 class SA_net(torch.nn.Module):
     meshgrid = [[-0.3, 0.3, 46], [-0.3, 0.3, 46]]
@@ -171,9 +173,7 @@ class SA_net(torch.nn.Module):
         p = SA_net.points[:, x.ravel(), y.ravel()].T.contiguous()
         p = p[None, :, None, :].repeat(batch[-1] + 1, 1, 1, 1)
         return p.to(device)
-        # self.plane2D = torch.tensor(np.random.normal(0, 1, (n, 2))[np.newaxis, :, np.newaxis, :], dtype=torch.float32)\
-        #                     .repeat(16, 1, 1, 1).to(device)
-        # return self.plane2D
+
 
     def encoder(self, x, batch):
         level0 = self.point_net0(x.pos, x.pos, batch, batch[-1] + 1)
@@ -185,7 +185,6 @@ class SA_net(torch.nn.Module):
     def decoder(self, level0, level1, level2, level3, batch):
         x = level3[0][:, None, None, :].repeat(1, 64, 1, 1)
         grid = self.get_2dplane(8, 8, batch)
-        #x = torch.cat((x, p.view(1, p.size(0), 1, p.size(-1)).repeat(x.size(0), 1, 1, 1)), -1)
         x = torch.cat((x, grid), -1)
 
         x = self.skip_attention1(x, level2[0], batch)
