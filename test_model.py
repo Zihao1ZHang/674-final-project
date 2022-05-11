@@ -1,15 +1,9 @@
-import os, sys
+import os
 import argparse
-import numpy as np
-from utils.data_process import DataProcess, get_while_running, kill_data_processes
-from utils.data_utils import load_h5, load_csv, augment_cloud, pad_cloudN
 from utils.vis import plot_pcds
 from main import DataPreprocess
 from torch_geometric.data import DataLoader
-# from model import SA_net
-# from model_modified import SA_net
 from model import SA_net
-import torch
 import kaolin
 from utils.emd_func import *
 
@@ -43,7 +37,7 @@ if __name__ == '__main__':
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = SA_net().to(device)
-    model.load_state_dict(torch.load('./trained/model_SA_net.pt', map_location=device))
+    model.load_state_dict(torch.load('./trained/SA_net_Ch_Airplane_674_cos_100.pt', map_location=device))
     model.eval()
     gen_data = {
         'pred': np.empty([len(test_dataset), 2048, 3]),
@@ -52,8 +46,6 @@ if __name__ == '__main__':
     }
     batch_size = 1
     for i, data in enumerate(test_loader):
-        # if data.batch[-1] != 15:
-        #     continue
         data = data.to(device)
         with torch.no_grad():
             begin = i * batch_size
@@ -63,6 +55,10 @@ if __name__ == '__main__':
             gen_data['original'][begin:end] = data.pos.cpu().numpy().reshape((-1, 2048, 3))
     emd = emdModule()
     print(cal_loss(data_loader=test_loader, test_model=model, dataset=test_dataset))
+    if not os.path.isdir("result"):
+        os.mkdir("result")
+    if not os.path.isdir("./result/model"):
+        os.mkdir("./result/model")
     for i in range(100):
         path = "./result/model/model_" + str(i) + ".png"
         plot_pcds(path, [gen_data['pred'][i].squeeze(), gen_data['original'][i].squeeze(), gen_data['true'][i].squeeze()], ['pred', 'partial', 'gt'], use_color=[0, 0, 0], color=[None, None, None])

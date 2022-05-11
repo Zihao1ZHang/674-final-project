@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from torch.nn import Sequential as Seq, Linear as Lin, ReLU, BatchNorm1d as BN, LeakyReLU, GroupNorm
+from torch.nn import Sequential as Seq, Linear as Lin, ReLU
 from torch_geometric.nn import PointConv, fps, radius, global_max_pool
 import numpy as np
 from torch.nn import Linear
@@ -44,23 +44,6 @@ def MLP(channels):
         Seq(Lin(channels[i - 1], channels[i]), ReLU())
         for i in range(1, len(channels))
     ])
-
-
-
-#
-# def MLP(channels, enable_group_norm=True):
-#     if enable_group_norm:
-#         num_groups = [0]
-#         for i in range(1, len(channels)):
-#             if channels[i] >= 32:
-#                 num_groups.append(channels[i]//32)
-#             else:
-#                 num_groups.append(1)
-#         return Seq(*[Seq(Lin(channels[i - 1], channels[i]), LeakyReLU(negative_slope=0.2), GroupNorm(num_groups[i], channels[i]))
-#                      for i in range(1, len(channels))])
-#     else:
-#         return Seq(*[Seq(Lin(channels[i - 1], channels[i]), LeakyReLU(negative_slope=0.2))
-#                      for i in range(1, len(channels))])
 
 
 class PointNet(torch.nn.Module):
@@ -109,10 +92,6 @@ class FoldingBlock(torch.nn.Module):
         return point_4
 
     def Down_module(self, points, up_points):
-        # point_1 = torch.reshape(up_points, (up_points.shape[0], self.input, int(self.ratio)*up_points.shape[2])).contiguous()
-        # point_2 = point_1-points
-        # point_3 = self.mlp_down(point_2)
-        # return point_3
         up_reshape = up_points.view(-1, self.input, int(self.ratio) * up_points.size(2))
         mlp_up_points = self.mlp_down(up_reshape)
         return points - mlp_up_points
@@ -123,35 +102,6 @@ class FoldingBlock(torch.nn.Module):
         down = self.Down_module(points, up)
         up1 = self.Up_module(down, grid=grid)
         return up1+up
-
-
-# class Self_Attn(torch.nn.Module):
-#     def __init__(self, in_dim, activation):
-#         super(Self_Attn, self).__init__()
-#         self.chanel_in = in_dim
-#         self.activation = activation
-#
-#         self.query_conv = torch.nn.Conv2d(in_channels=in_dim, out_channels=in_dim // 8, kernel_size=1)
-#         self.key_conv = torch.nn.Conv2d(in_channels=in_dim, out_channels=in_dim // 8, kernel_size=1)
-#         self.value_conv = torch.nn.Conv2d(in_channels=in_dim, out_channels=in_dim, kernel_size=1)
-#         self.gamma = torch.nn.Parameter(torch.zeros(1))
-#
-#         self.softmax = torch.nn.Softmax(dim=-1)
-#
-#     def forward(self, x):
-#         m_batchsize, C, width, height = x.size()
-#         proj_query = self.query_conv(x).view(m_batchsize, -1, width * height).permute(0, 2, 1)  # B X CX(N)
-#         proj_key = self.key_conv(x).view(m_batchsize, -1, width * height)  # B X C x (*W*H)
-#         energy = torch.bmm(proj_query, proj_key)  # transpose check
-#         attention = self.softmax(energy)  # BX (N) X (N)
-#         proj_value = self.value_conv(x).view(m_batchsize, -1, width * height)  # B X C X N
-#
-#         out = torch.bmm(proj_value, attention.permute(0, 2, 1))
-#         out = out.view(m_batchsize, C, width, height)
-#
-#         out = self.gamma * out + x
-#
-#         return out, attention
 
 
 class SkipAttention(torch.nn.Module):
@@ -179,7 +129,6 @@ class SkipAttention(torch.nn.Module):
             l = l.expand(-1, h.shape[1], -1, -1)
             cos = torch.nn.CosineSimilarity(dim=-1, eps=1e-6)
             attn_weights = cos(h, l)
-
         g = self.mlp_g(r)
         g = g.squeeze()
         if len(attn_weights.size()) == 2:
@@ -196,16 +145,17 @@ class SA_net(torch.nn.Module):
     meshgrid = [[-0.3, 0.3, 46], [-0.3, 0.3, 46]]
     x = np.linspace(*meshgrid[0])
     y = np.linspace(*meshgrid[1])
-
     points = torch.tensor(np.meshgrid(x, y), dtype=torch.float32)
-    def __init__(self, ):
+    def __init__(self):
         super(SA_net, self).__init__()
-        self.point_net1 = pointnet_2(0.25, 0.2, MLP([3 + 3, 64, 64, 128]))
+        self.point_net0 = pointnet_2(0.5, 0.2, MLP([3 + 3, 32, 32, 64]))
+        self.point_net1 = pointnet_2(0.5, 0.2, MLP([64 + 3, 64, 64, 128]))
         self.point_net2 = pointnet_2(0.5, 0.4, MLP([128 + 3, 128, 128, 256]))
         self.point_net3 = pointnet_2_group(MLP([256 + 3, 256, 512, 512]))
 
         self.skip_attention1 = SkipAttention(MLP([514, 128]), MLP([256, 128]), MLP([256, 512 + 2]), MLP([514, 512]))
         self.skip_attention2 = SkipAttention(MLP([256, 64]), MLP([128, 64]), MLP([128, 256]), MLP([256, 256]))
+        self.skip_attention3 = SkipAttention(MLP([128, 32]), MLP([64, 32]), MLP([64, 128]), MLP([128, 128]))
 
         self.folding_block1 = FoldingBlock(64, 256, [514, 512], [1024, 512], [1024, 256], [1024, 1024], [1024, 256], [1024, 512, 256])
         self.folding_block2 = FoldingBlock(256, 512, [258, 256], [256, 256], [512, 64], [512, 512], [512, 64], [512, 256, 128])
@@ -223,32 +173,32 @@ class SA_net(torch.nn.Module):
         p = SA_net.points[:, x.ravel(), y.ravel()].T.contiguous()
         p = p[None, :, None, :].repeat(batch[-1] + 1, 1, 1, 1)
         return p.to(device)
-        # self.plane2D = torch.tensor(np.random.normal(0, 1, (n, 2))[np.newaxis, :, np.newaxis, :], dtype=torch.float32)\
-        #                     .repeat(16, 1, 1, 1).to(device)
-        # return self.plane2D
+
 
     def encoder(self, x, batch):
-        level1 = self.point_net1(x.pos, x.pos, batch, batch[-1] + 1)
+        level0 = self.point_net0(x.pos, x.pos, batch, batch[-1] + 1)
+        level1 = self.point_net1(level0[0], level0[1], level0[2], batch[-1] + 1)
         level2 = self.point_net2(level1[0], level1[1], level1[2], batch[-1] + 1)
         level3 = self.point_net3(level2[0], level2[1], level2[2])
-        return level1, level2, level3
+        return level0, level1, level2, level3
 
-    def decoder(self, level1, level2, level3, batch):
+    def decoder(self, level0, level1, level2, level3, batch):
         x = level3[0][:, None, None, :].repeat(1, 64, 1, 1)
         grid = self.get_2dplane(8, 8, batch)
-        #x = torch.cat((x, p.view(1, p.size(0), 1, p.size(-1)).repeat(x.size(0), 1, 1, 1)), -1)
-
         x = torch.cat((x, grid), -1)
 
-        x = self.skip_attention1(x, level2[0], batch=batch)
+        x = self.skip_attention1(x, level2[0], batch)
         grid = self.get_2dplane(16, 16, batch)
         x = self.folding_block1(x, grid)
         x = x.unsqueeze(-2)
-        x = self.skip_attention2(x, level1[0], method='cos', batch=batch)
+
+        x = self.skip_attention2(x, level1[0], batch, 'cosine')
         grid = self.get_2dplane(32, 16, batch)
         x = self.folding_block2(x, grid)
+        x = x.unsqueeze(-2)
+
+        x = self.skip_attention3(x, level0[0], batch, 'cosine')
         grid = self.get_2dplane(64, 32, batch)
-        # torch.cuda.empty_cache()
         x = self.folding_block3(x, grid)
         x = self.ln1(x)
         x = self.relu(x)
@@ -256,6 +206,6 @@ class SA_net(torch.nn.Module):
         return x
 
     def forward(self, x, batch):
-        level1, level2, level3 = self.encoder(x, batch)
-        out = self.decoder(level1, level2, level3, batch)
+        level0, level1, level2, level3 = self.encoder(x, batch)
+        out = self.decoder(level0, level1, level2, level3, batch)
         return out

@@ -5,8 +5,7 @@ from utils.shapenet import ShapenetDataProcess
 import argparse
 from utils.data_process import get_while_running, kill_data_processes
 from torch_geometric.data import DataLoader
-# from model_cos import SA_net
-from model_modified_cos import SA_net
+from model_level4 import SA_net
 import kaolin
 from utils.emd_func import *
 
